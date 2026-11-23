@@ -8,7 +8,7 @@ import { fullyPaid } from '../server/payment.js';
 const origin = 'https://test.jobclaude.invalid';
 const code = 'test-only-secret-do-not-use-12345';
 const settings = { enabled: true, pilot: true, origin, pilotCode: code };
-const target = 'https://careers.example.com/roles/123';
+const target = 'https://example.com/careers/123';
 const report = { critique: { verdict: 'A grounded response.' }, leads: [] };
 const input = {
   resume: 'Built a Rust backend and measured API performance. '.repeat(6),
@@ -45,8 +45,8 @@ test('private pilot refuses a bad code and streams progress without a checkout',
 
 test('keeps only seen source URLs, removing tracking and excluding unsafe links', () => {
   const result = verifiedLeads({
-    usedSearch: true, sources: [target + '/?utm_source=test', 'http://invalid.test'],
-    data: { leads: [{ url: target }, { url: 'https://invented.test' }, { url: 'javascript:alert(1)' }] },
+    usedSearch: true, sources: [target + '/?utm_source=test', 'http://invalid.test', 'https://aggregator.test/jobs/123'],
+    data: { leads: [{ company: 'Example', url: target }, { company: 'Example', url: 'https://aggregator.test/jobs/123' }, { company: 'Example', url: 'javascript:alert(1)' }] },
   });
   assert.deepEqual(result.map(lead => lead.url), [target]);
 });
@@ -68,7 +68,7 @@ test('research does not send résumé text to search tracks and deduplicates the
       return {
         usedSearch: true,
         sources: [target],
-        data: { leads: [{ company: 'A company', url: target, fit: 'direct', hiringSignal: 'Open.' }] },
+        data: { leads: [{ company: 'Example', url: target, fit: 'direct', hiringSignal: 'Open.' }] },
       };
     },
   });
@@ -98,7 +98,7 @@ test('the pilot can run a search stage independently of the résumé request', a
     assert.equal(request.search, true);
     assert.equal(request.input.locations, 'India');
     assert.match(request.instructions, /Startup scout/);
-    return { usedSearch: true, sources: [target], data: { leads: [{ url: target }] } };
+    return { usedSearch: true, sources: [target], data: { leads: [{ company: 'Example', url: target }] } };
   } });
-  assert.deepEqual(await response.json(), { leads: [{ url: target }] });
+  assert.deepEqual(await response.json(), { leads: [{ company: 'Example', url: target }] });
 });
