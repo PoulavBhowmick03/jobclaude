@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Find engineering teams hiring for your skills, and open-source projects you could contribute to." />
+    <title>Jobclaude — Career search</title>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="wrap mast-inner">
+        <a class="brand" href="./"><span class="mark" aria-hidden="true">J</span> Jobclaude</a>
+        <a class="repo-link" href="https://github.com/PoulavBhowmick03/jobclaude" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="intro">
+        <p class="eyebrow">Engineering career search</p>
+        <h1>Where could you<br class="desktop-break"> get hired?</h1>
+        <p>Find teams that hire for your skills and open-source projects you could contribute to.</p>
+        <div id="feed-status" role="status" class="feed-status">Loading the latest scan…</div>
+      </section>
+      <div class="layout">
+        <aside>
+          <section class="panel profile">
+            <h2>Your profile</h2>
+            <p>Résumé matching happens on this device.</p>
+            <label class="file-button">
+              <input type="file" id="resumes" accept=".pdf,.txt,application/pdf,text/plain" multiple>
+              <span>Add résumés</span>
+            </label>
+            <div id="resume-list"></div>
+            <form id="github-form">
+              <label for="github">GitHub profile</label>
+              <div class="input-row">
+                <input id="github" autocomplete="off" placeholder="Username or URL" required>
+                <button type="submit">Import</button>
+              </div>
+            </form>
+            <p id="profile-status" class="status" role="status"></p>
+            <div id="profile-tags" class="tags"></div>
+            <div class="profile-actions">
+              <button type="button" class="quiet" id="export-profile" hidden>Export skills</button>
+              <button type="button" class="quiet" id="clear-profile" hidden>Clear profile</button>
+            </div>
+          </section>
+          <details class="panel sources">
+            <summary>Scan coverage</summary>
+            <div id="sources-content"></div>
+          </details>
+        </aside>
+        <section class="results" aria-labelledby="results-heading">
+          <div class="results-head">
+            <h2 id="results-heading">Field notes</h2>
+            <span id="result-count" aria-live="polite"></span>
+          </div>
+          <div class="filters">
+            <div class="tabs" aria-label="Show leads">
+              <button data-view="all" aria-pressed="true">All</button>
+              <button data-view="job" aria-pressed="false">Open roles</button>
+              <button data-view="issue" aria-pressed="false">Contribute</button>
+              <button data-view="teams" aria-pressed="false">Teams</button>
+              <button data-view="saved" aria-pressed="false">Saved</button>
+            </div>
+            <div class="filter-grid">
+              <input id="search" type="search" aria-label="Search leads" placeholder="Search companies, skills, or locations">
+              <select id="track" aria-label="Focus area">
+                <option value="">All tracks</option>
+                <option>Applied AI</option>
+                <option>Rust &amp; backend</option>
+                <option>Protocol engineering</option>
+              </select>
+            </div>
+          </div>
+          <div id="results"></div>
+          <button id="more" class="more" type="button" hidden>Load more</button>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
