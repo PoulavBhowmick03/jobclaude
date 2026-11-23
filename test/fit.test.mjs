@@ -59,3 +59,12 @@ test('collects the mandatory skill section separately from optional requirements
   const fit = verifyEligibility(lead, brief, lines);
   assert.deepEqual(fit.technicalRequirements, ['2–7 years of experience', 'Hands-on speech model fine-tuning.']);
 });
+
+test('reads employer qualification headings before preferred criteria', () => {
+  const lines = ['Hybrid - Bangalore, India', 'WHO YOU ARE',
+    'You are a skilled backend engineer with 1+ years of experience.', 'MINIMUM QUALIFICATIONS',
+    'Hands-on experience with MySQL databases.', 'PREFERRED QUALIFICATIONS', 'Exposure to AI/ML pipelines.'];
+  const fit = verifyEligibility(lead, brief, lines);
+  assert(fit.technicalRequirements.includes(lines[4]));
+  assert(!fit.technicalRequirements.includes(lines[6]));
+});

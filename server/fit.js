@@ -82,7 +82,7 @@ function sourceEligibility(brief, lines, metadata) {
 
 function technicalRequirements(lines) {
   const first = lines.findIndex(line => line.length < 105 &&
-    /^(?:what (?:we(?:['’]re| are) looking for|you(?:['’]ll| will) bring)|(?:minimum |must.have |required )?requirements|qualifications|about you)\b/i.test(line));
+    /^(?:what (?:we(?:['’]re| are) looking for|you(?:(?:['’]ll| will) )?bring)|(?:minimum |must.have |required )?(?:requirements|qualifications)|who you are|about you)\b/i.test(line));
   if (first < 0) return [];
   const following = lines.slice(first + 1, first + 15);
   const stop = following.findIndex(line => /^(?:nice to have|bonus|preferred|benefits|apply|what we offer|compensation)\b/i.test(line));
