@@ -4,7 +4,7 @@ import { evidence, rank, tags } from '../src/match.js';
 
 test('extracts concrete skill evidence without treating the text as commands', () => {
   const lines = ['Built distributed validator tests in Rust.', 'Integrated voice models over REST APIs.'];
-  const result = evidence(lines);
+  const result = evidence(['Rust · Voice AI · Backend', ...lines]);
   assert.equal(result.Consensus, lines[0]);
   assert.equal(result.Rust, lines[0]);
   assert.equal(result['Voice AI'], lines[1]);

@@ -28,11 +28,18 @@ export function tags(text) {
 }
 
 export function evidence(lines) {
-  const result = {};
+  const action = /^\s*(?:[•●*–-]\s*)?(?:built|implemented|integrated|deployed|shipped|optimized|reduced|debugged|diagnosed|added|fixed|prototyped|maintained|designed|validated|connected|wrote)\b/i;
+  const reference = /\b(?:PR|issue)\s*#?\d+|\b\d+(?:\.\d+)?%|https:\/\//i;
+  const concrete = /\b(?:production|mainnet|tests?|benchmarks?|deployments?|latency|failures?|cache|webhooks?|timeout|debugg\w*|integration)\b/i;
+  const best = {};
   for (const line of lines) {
-    for (const tag of tags(line)) result[tag] ??= line.slice(0, 220);
+    const score = 4 * Number(action.test(line)) + 3 * Number(reference.test(line))
+      + 2 * Number(concrete.test(line)) + Number(line.length >= 45);
+    for (const tag of tags(line)) {
+      if (!best[tag] || score > best[tag].score) best[tag] = { score, text: line.slice(0, 220) };
+    }
   }
-  return result;
+  return Object.fromEntries(Object.entries(best).map(([tag, item]) => [tag, item.text]));
 }
 
 export function rank(leads, profile, track) {
