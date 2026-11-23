@@ -1,60 +1,35 @@
 # Jobclaude
 
-Jobclaude finds engineering teams that hire for your skills and open-source projects where you could contribute. It shows the source for each lead.
+Jobclaude reviews a résumé and searches for matching engineering roles on demand. The workspace streams the review and each search result to the browser.
 
-## Use the dashboard
+## Preview
 
-1. Open [Jobclaude](https://jobclaude.vercel.app).
-2. Add one or more text-based PDF or TXT résumés.
-3. Enter your GitHub username and select **Import**.
-4. Start with **Shortlist** for early-career roles in India and selected contribution paths.
-5. Select a track or search by location, company, or skill.
-6. Open **Your evidence** on a lead to see where a shared skill came from.
-7. Select **Teams** for the company and project list, or **Save** to keep a lead.
+Open [Jobclaude](https://jobclaude.vercel.app). Select **See an example report** to inspect the format. The example uses fictional candidate and employer data.
 
-The browser stores selected résumé excerpts, imported GitHub evidence, and saved leads on the current device. Clear the profile to remove résumé and GitHub evidence from browser storage. GitHub receives the username you ask it to look up.
+## Private pilot on Vercel
 
-The shortlist shows experience, location, a route to apply or contribute, and a public contact when the source names one. Scanner matches come from selected startup boards and require relevant work, an India location, and early-career evidence. Stretch roles show the stated expectations. Use **All roles** to browse the wider feed. Keyword matches are starting points for reading. Check the source for hiring geography, work authorization, seniority, and open status.
+1. Set `APP_ORIGIN` to the exact production origin, such as `https://jobclaude.vercel.app`.
+2. Set `RESEARCH_PROVIDER=vercel` to use the project’s Vercel AI Gateway OIDC token. Alternatively, set `OPENAI_API_KEY`.
+3. Generate a private pilot code and set `PILOT_ACCESS_CODE` in the project.
+4. Redeploy and enter the private code in the research form.
 
-## Run locally
+Use a random code with 24 or more URL-safe characters. Keep the code and model key out of Git. The pilot uses no payment service or report database. Download results before closing the page. Keep the pilot code private. Use the AI Gateway free balance or configure a provider budget before sharing access.
 
-Use Node.js 22.12 or later.
+The browser extracts text from PDF or TXT files. The API removes common email and phone formats before model submission. Avoid including unnecessary sensitive details. The reference search receives a role brief. The OpenAI API requests set `store: false`. An optional GitHub username enables a check of public merged PRs.
+
+## Checkout
+
+Keep checkout disabled during the pilot. The checkout flow uses Razorpay Payment Links and one paid report per browser pass.
+
+Configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `REPORT_PRICE_PAISE`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` for test mode. Activate live keys and `ENABLE_LIVE_PAYMENTS=true` only after testing payments and confirming the commercial hosting plan. A paid report is stored for up to seven days. Resume input is processed by the research service and is not written to the report database.
+
+## Develop
 
 ```sh
 npm ci
-npm run dev
+npm test
+npm run build
+vercel dev
 ```
 
-Run `npm test` to check the matching rules. Run `npm run build` to build the static dashboard.
-
-## Refresh the public feed
-
-GitHub Actions checks configured employer boards and public GitHub repositories every day at 03:17 UTC (08:47 IST). Three GitHub searches add repositories to a rotating watchlist. The same scan rechecks each reviewed shortlist source. The scan records source failures and keeps recently verified results for up to seven days.
-
-The workflow writes the public feed to `public/data/latest.json`. The dashboard loads this file from GitHub and falls back to a copy from its deployment. The workflow uses the repository's built-in GitHub token.
-
-To start a scan, open **Actions**, select **Scan career leads**, and select **Run workflow**. To change coverage, edit `scripts/sources.mjs`. To add a reviewed lead, edit `scripts/shortlist.mjs`. For a local scan, run the following commands with the GitHub CLI signed in.
-
-```sh
-GH_TOKEN="$(gh auth token)" npm run scan
-npm run dev
-```
-
-Standard GitHub-hosted runners are free for public repositories. Vercel Hobby is free for personal use within plan limits. GitHub can delay scheduled runs and disables inactive public schedules after 60 days. [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions) · [GitHub schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule) · [Vercel Hobby](https://vercel.com/docs/plans/hobby)
-
-## Review leads with a local model
-
-This optional step uses a local Ollama model to pick up to five leads for further reading. It uses the premise that you found a job six months from now and asks which leads could plausibly explain that outcome. The script accepts only picks that refer to real feed entries and shared skills.
-
-1. Select **Export skills** in the dashboard.
-2. Store the exported profile in the ignored `private/` directory.
-3. Install Ollama and start it with `OLLAMA_NO_CLOUD=1`.
-4. Download a local model and set `OLLAMA_MODEL` to its name.
-5. Pull the current feed and run the review.
-
-```sh
-git pull --ff-only
-OLLAMA_MODEL="<downloaded-model>" npm run review -- private/jobclaude-profile.json "Applied AI"
-```
-
-Use your OS scheduler to run this command periodically on an awake machine. Keep the output in `private/`. Ollama's local mode has no model API fees. [Ollama local-only mode](https://docs.ollama.com/faq#how-do-i-disable-ollama-s-cloud-features)
+The local tests exercise report streaming and payment verification with test doubles. Legacy source scan scripts remain available for local use.

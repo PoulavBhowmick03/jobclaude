@@ -1,83 +1,83 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Find engineering teams hiring for your skills, and open-source projects you could contribute to." />
-    <title>Jobclaude — Career search</title>
-  </head>
-  <body>
-    <header class="masthead">
-      <div class="wrap mast-inner">
-        <a class="brand" href="./"><span class="mark" aria-hidden="true">J</span> Jobclaude</a>
-        <a class="repo-link" href="https://github.com/PoulavBhowmick03/jobclaude" target="_blank" rel="noreferrer">GitHub</a>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Get a candid résumé review and live job research grounded in what you’ve built.">
+  <title>Jobclaude — Live career research</title>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap mast-inner">
+      <a class="brand" href="./"><span class="mark" aria-hidden="true">J</span>Jobclaude</a>
+      <button class="header-link" id="sample-top" type="button">See an example</button>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">Live career research</p>
+        <h1>Find the teams<br>you could get into.</h1>
+        <p class="dek">Get a candid read on your résumé. Then watch three agents search the web for jobs you have a real shot at.</p>
       </div>
-    </header>
-    <main class="wrap">
-      <section class="intro">
-        <p class="eyebrow">Engineering career search</p>
-        <h1>Where could you<br class="desktop-break"> get hired?</h1>
-        <p>Find teams that hire for your skills and open-source projects you could contribute to.</p>
-        <div id="feed-status" role="status" class="feed-status">Loading the latest scan…</div>
+      <div class="intro-note">
+        <h2>What you get</h2>
+        <ul>
+          <li>Weak claims, missing proof, and specific résumé edits</li>
+          <li>A shortlist with location, experience, and source links</li>
+          <li>A concrete way to approach each team</li>
+        </ul>
+      </div>
+    </section>
+    <div class="layout">
+      <form class="panel brief" id="brief">
+        <h2>Your search brief</h2>
+        <label class="field" for="resumes">Résumés <span>PDF or TXT</span></label>
+        <input type="file" id="resumes" accept=".pdf,.txt,application/pdf,text/plain" multiple>
+        <p id="resume-status" class="hint" role="status">Add up to two résumé versions.</p>
+        <label class="field" for="github">GitHub <span>Optional</span></label>
+        <input id="github" placeholder="Username or profile URL" autocomplete="off">
+        <label class="field" for="roles">What do you want to do?</label>
+        <input id="roles" placeholder="e.g. Voice AI or Rust backend" maxlength="140" required>
+        <label class="field" for="locations">Where can you work?</label>
+        <input id="locations" placeholder="e.g. Bengaluru or remote from India" maxlength="140" required>
+        <label class="field" for="experience">Years of experience</label>
+        <select id="experience" required>
+          <option value="">Choose experience</option>
+          <option>0–1 years</option>
+          <option>1–2 years</option>
+          <option>2–4 years</option>
+          <option>4+ years</option>
+        </select>
+        <div id="pilot-field" hidden>
+          <label class="field" for="pilot-code">Private pilot access code</label>
+          <input id="pilot-code" type="password" autocomplete="off">
+        </div>
+        <p class="privacy">When you start research, Jobclaude sends extracted résumé text to its AI provider. It removes email and common phone formats first. Download the report when it finishes.</p>
+        <p id="pass-label" class="offer" role="status">Checking availability…</p>
+        <button class="primary" id="start" type="submit" disabled>Continue</button>
+        <a class="primary payment-link" id="payment-link" target="_blank" rel="noopener noreferrer" hidden>Open secure checkout</a>
+        <button class="secondary" id="refresh" type="button" hidden>Check payment</button>
+        <button class="secondary" id="new-pass" type="button" hidden>Start a new report</button>
+        <p class="hint" id="brief-message" role="status"></p>
+      </form>
+      <section class="workspace" aria-labelledby="workspace-heading">
+        <div class="workspace-top">
+          <h2 id="workspace-heading">Research workspace</h2>
+          <span id="mode" class="badge">Ready</span>
+        </div>
+        <div id="activity" class="activity" aria-live="polite"></div>
+        <div id="output"></div>
+        <div id="empty" class="panel empty">
+          <h3>Your report will appear here</h3>
+          <p>The résumé reviewer starts first. You’ll see results as each of the three searches finishes.</p>
+          <button class="secondary" id="sample" type="button">See an example report</button>
+        </div>
+        <button class="secondary" id="download" type="button" hidden>Download report</button>
       </section>
-      <div class="layout">
-        <aside>
-          <section class="panel profile">
-            <h2>Your profile</h2>
-            <p>Résumé matching happens on this device.</p>
-            <label class="file-button">
-              <input type="file" id="resumes" accept=".pdf,.txt,application/pdf,text/plain" multiple>
-              <span>Add résumés</span>
-            </label>
-            <div id="resume-list"></div>
-            <form id="github-form">
-              <label for="github">GitHub profile</label>
-              <div class="input-row">
-                <input id="github" autocomplete="off" placeholder="Username or URL" required>
-                <button type="submit">Import</button>
-              </div>
-            </form>
-            <p id="profile-status" class="status" role="status"></p>
-            <div id="profile-tags" class="tags"></div>
-            <div class="profile-actions">
-              <button type="button" class="quiet" id="export-profile" hidden>Export skills</button>
-              <button type="button" class="quiet" id="clear-profile" hidden>Clear profile</button>
-            </div>
-          </section>
-          <details class="panel sources">
-            <summary>Scan coverage</summary>
-            <div id="sources-content"></div>
-          </details>
-        </aside>
-        <section class="results" aria-labelledby="results-heading">
-          <div class="results-head">
-            <h2 id="results-heading">Shortlist</h2>
-            <span id="result-count" aria-live="polite"></span>
-          </div>
-          <div class="filters">
-            <div class="tabs" aria-label="Show leads">
-              <button data-view="shortlist" aria-pressed="true">Shortlist</button>
-              <button data-view="job" aria-pressed="false">All roles</button>
-              <button data-view="issue" aria-pressed="false">Contribute</button>
-              <button data-view="teams" aria-pressed="false">Teams</button>
-              <button data-view="saved" aria-pressed="false">Saved</button>
-            </div>
-            <div class="filter-grid">
-              <input id="search" type="search" aria-label="Search leads" placeholder="Search companies, skills, or locations">
-              <select id="track" aria-label="Focus area">
-                <option value="">All tracks</option>
-                <option>Applied AI</option>
-                <option>Rust &amp; backend</option>
-                <option>Protocol engineering</option>
-              </select>
-            </div>
-          </div>
-          <p id="shortlist-note">Early-career roles in India and selected contribution paths. Start with the reviewed leads. Scanner matches appear as new roles qualify.</p>
-          <div id="results"></div>
-          <button id="more" class="more" type="button" hidden>Load more</button>
-        </section>
-      </div>
-    </main>
-    <script type="module" src="/src/app.js"></script>
-  </body>
+    </div>
+  </main>
+  <footer class="wrap footer"><a href="https://github.com/PoulavBhowmick03/jobclaude" target="_blank" rel="noreferrer">GitHub</a></footer>
+  <script type="module" src="/src/live.js"></script>
+</body>
 </html>
