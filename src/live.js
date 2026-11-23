@@ -136,7 +136,9 @@ function renderLead(lead) {
   const labels = { direct: 'Direct fit', stretch: 'Stretch', unverified: 'Fit needs checking', conversation: 'Conversation route' };
   const section = reportSection(lead.company);
   section.classList.add('lead');
-  section.prepend(element('span', labels[lead.fit], `badge ${lead.fit}`));
+  const fitLabel = lead.fit === 'direct' && lead.eligibility && lead.technicalFit !== 'supported'
+    ? 'Eligibility checked' : labels[lead.fit];
+  section.prepend(element('span', fitLabel, `badge ${lead.fit}`));
   section.append(element('strong', lead.role), element('p', [lead.location, lead.experience].filter(Boolean).join(' · '), 'hint'));
   if (lead.eligibility) {
     const list = element('dl', '', 'fit-evidence');
@@ -155,6 +157,11 @@ function renderLead(lead) {
     section.append(list);
   }
   section.append(element('p', lead.hiringSignal));
+  if (lead.technicalGap) {
+    const gap = element('div', '', 'route');
+    gap.append(element('strong', 'What to verify about your fit'), element('p', lead.technicalGap));
+    section.append(gap);
+  }
   for (const [label, value] of [['What to show', lead.proofToLeadWith], ['Way in', lead.route]]) {
     const item = element('div', '', 'route');
     item.append(element('strong', label), element('p', value));

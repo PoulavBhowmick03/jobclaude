@@ -52,3 +52,10 @@ test('team routes require an owned, merged PR and link to the actual approval an
   assert.equal(result.routes[0].contribution.title, 'Account for cache memory');
   assert.deepEqual((await teamRoutes('unrelated', [evidence], fakeGitHub)).routes, []);
 });
+
+test('collects the mandatory skill section separately from optional requirements', () => {
+  const lines = ['Bengaluru, India (Remote)', 'What we’re looking for', '2–7 years of experience',
+    'Hands-on speech model fine-tuning.', 'Nice to have', 'FastAPI.'];
+  const fit = verifyEligibility(lead, brief, lines);
+  assert.deepEqual(fit.technicalRequirements, ['2–7 years of experience', 'Hands-on speech model fine-tuning.']);
+});

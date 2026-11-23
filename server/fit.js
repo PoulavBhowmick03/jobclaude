@@ -80,6 +80,15 @@ function sourceEligibility(brief, lines, metadata) {
   };
 }
 
+function technicalRequirements(lines) {
+  const first = lines.findIndex(line => line.length < 105 &&
+    /^(?:what (?:we(?:['’]re| are) looking for|you(?:['’]ll| will) bring)|(?:minimum |must.have |required )?requirements|qualifications|about you)\b/i.test(line));
+  if (first < 0) return [];
+  const following = lines.slice(first + 1, first + 15);
+  const stop = following.findIndex(line => /^(?:nice to have|bonus|preferred|benefits|apply|what we offer|compensation)\b/i.test(line));
+  return following.slice(0, stop < 0 ? following.length : stop).filter(line => line.length <= 260).slice(0, 10);
+}
+
 export function verifyEligibility(lead, brief, lines = [], metadata = {}) {
   const info = sourceEligibility(brief, lines, metadata);
   const { workMode, modeEvidence, locationEvidence, experienceEvidence, minimum, country, allowedCities } = info;
@@ -113,6 +122,7 @@ export function verifyEligibility(lead, brief, lines = [], metadata = {}) {
     location: locationEvidence ?? 'Location not verified',
     experience: minimum === null ? 'Years not verified' : `${minimum}+ years minimum`,
     fit,
+    technicalRequirements: technicalRequirements(lines),
     eligibility: {
       location: { status: location, quote: locationEvidence },
       workMode: { status: workMode ? 'confirmed' : 'unverified', value: workMode, quote: modeEvidence },

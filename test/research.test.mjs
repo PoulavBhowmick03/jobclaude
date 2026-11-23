@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleResearch } from '../api/research.js';
 import { handleSession } from '../api/session.js';
-import { verifiedLeads, runResearch, statedMinimum } from '../server/research.js';
+import { verifiedLeads, runResearch, statedMinimum, matchProof } from '../server/research.js';
 import { isPublicIpv4, visibleText } from '../server/source.js';
 import { fullyPaid } from '../server/payment.js';
 
@@ -117,4 +117,14 @@ test('posting verification blocks nonpublic addresses and reads visible requirem
   const lines = visibleText('<script>0 years</script><li>3+ years of production Python experience.</li>');
   assert.deepEqual(lines, ['3+ years of production Python experience.']);
   assert.equal(statedMinimum(lines.join(' ')), 3);
+});
+
+test('matching eligibility cannot turn a decisive skill gap into a direct recommendation', async () => {
+  const lead = { company: 'Example', role: 'Speech Engineer', url: target, fit: 'direct', technicalRequirements: ['Fine-tune speech models.'] };
+  const [result] = await matchProof({ strengths: [], github: { entries: [] } }, [lead], async request => {
+    assert.deepEqual(request.input.roles[0].requirements, lead.technicalRequirements);
+    return { data: { matches: [{ lead: 0, proof: 'Integrated voice model APIs.', gap: 'No model training evidence.', technicalFit: 'gap' }] } };
+  });
+  assert.equal(result.fit, 'stretch');
+  assert.equal(result.technicalGap, 'No model training evidence.');
 });
