@@ -3,12 +3,13 @@ import test from 'node:test';
 import { handleResearch } from '../api/research.js';
 import { handleSession } from '../api/session.js';
 import { verifiedLeads, runResearch, statedMinimum } from '../server/research.js';
+import { isPublicIpv4, visibleText } from '../server/source.js';
 import { fullyPaid } from '../server/payment.js';
 
 const origin = 'https://test.jobclaude.invalid';
 const code = 'test-only-secret-do-not-use-12345';
 const settings = { enabled: true, pilot: true, origin, pilotCode: code };
-const target = 'https://example.com/careers/123';
+const target = 'https://example.test/careers/123';
 const report = { critique: { verdict: 'A grounded response.' }, leads: [] };
 const input = {
   resume: 'Built a Rust backend and measured API performance. '.repeat(6),
@@ -100,11 +101,20 @@ test('the pilot can run a search stage independently of the résumé request', a
     assert.match(request.instructions, /Startup scout/);
     return { usedSearch: true, sources: [target], data: { leads: [{ company: 'Example', url: target }] } };
   } });
-  assert.deepEqual(await response.json(), { leads: [{ company: 'Example', url: target }] });
+  const { leads } = await response.json();
+  assert.equal(leads[0].url, target);
 });
 
 test('reads explicit minimum experience from dated hiring requirements', () => {
   assert.equal(statedMinimum('  - 5-12 years of software engineering experience.'), 5);
   assert.equal(statedMinimum('Requires 2 or more years building production software.'), 2);
   assert.equal(statedMinimum('Bonus: 5 years of protocol work.'), null);
+});
+
+test('posting verification blocks nonpublic addresses and reads visible requirements', () => {
+  for (const ip of ['127.0.0.1', '169.254.169.254', '10.1.2.3', '100.64.0.1', '::1']) assert(!isPublicIpv4(ip));
+  assert(isPublicIpv4('8.8.8.8'));
+  const lines = visibleText('<script>0 years</script><li>3+ years of production Python experience.</li>');
+  assert.deepEqual(lines, ['3+ years of production Python experience.']);
+  assert.equal(statedMinimum(lines.join(' ')), 3);
 });
