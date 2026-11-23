@@ -58,7 +58,7 @@ export async function publicWork(username, fetcher = fetch) {
 }
 
 export function createResearchProvider(env = process.env, fetcher = fetch, oidcToken) {
-  const gateway = env.RESEARCH_PROVIDER === 'vercel' && !env.OPENAI_API_KEY;
+  const gateway = env.RESEARCH_PROVIDER?.trim() === 'vercel' && !env.OPENAI_API_KEY;
   const key = gateway ? oidcToken ?? env.VERCEL_OIDC_TOKEN : env.OPENAI_API_KEY;
   const endpoint = gateway ? 'https://ai-gateway.vercel.sh/v1/responses' : 'https://api.openai.com/v1/responses';
   const model = env.OPENAI_JOBCLAUDE_MODEL ?? (gateway ? 'openai/gpt-5-mini' : 'gpt-6.1-terra');

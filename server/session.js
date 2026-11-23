@@ -6,9 +6,10 @@ const cookieName = 'jobclaude_pass';
 
 export function config(env = process.env) {
   const price = Number(env.REPORT_PRICE_PAISE);
-  const origin = env.APP_ORIGIN;
+  const origin = env.APP_ORIGIN?.trim();
+  const pilotCode = env.PILOT_ACCESS_CODE?.trim();
   const validOrigin = /^https:\/\/[^/?#]+$/.test(origin ?? '');
-  const pilot = Boolean(validOrigin && (env.OPENAI_API_KEY || env.RESEARCH_PROVIDER === 'vercel') && /^[a-zA-Z0-9_-]{24,128}$/.test(env.PILOT_ACCESS_CODE ?? ''));
+  const pilot = Boolean(validOrigin && (env.OPENAI_API_KEY || env.RESEARCH_PROVIDER?.trim() === 'vercel') && /^[a-zA-Z0-9_-]{24,128}$/.test(pilotCode ?? ''));
   const key = env.RAZORPAY_KEY_ID;
   const testMode = key?.startsWith('rzp_test_');
   const complete = Boolean(
@@ -17,7 +18,7 @@ export function config(env = process.env) {
     Number.isSafeInteger(price) && price >= 100 && price <= 1000000 &&
     (testMode || (key.startsWith('rzp_live_') && env.ENABLE_LIVE_PAYMENTS === 'true')),
   );
-  return { enabled: complete || pilot, pilot: !complete && pilot, pilotCode: env.PILOT_ACCESS_CODE, origin, price, testMode };
+  return { enabled: complete || pilot, pilot: !complete && pilot, pilotCode, origin, price, testMode };
 }
 
 export function readCookie(request) {
