@@ -1,6 +1,8 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { tags } from '../src/match.js';
 import { boards, repositories } from './sources.mjs';
+import { startupFit } from './eligibility.mjs';
+import { shortlist } from './shortlist.mjs';
 
 const checkedAt = new Date().toISOString();
 const recentCutoff = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -57,7 +59,7 @@ function safeUrl(value) {
   }
 }
 
-async function board([org, system, slug]) {
+async function board([org, system, slug, startup]) {
   const sourceKey = `${system}:${slug}`;
   return collect('board', sourceKey, org, async () => {
     const body = await json(ats[system](slug));
@@ -71,11 +73,18 @@ async function board([org, system, slug]) {
       const titleTags = tags(title);
       const found = [...new Set([...titleTags, ...tags(description)])];
       if (!found.length) return [];
-      const location = job.location?.name ?? job.location ?? job.categories?.location ?? 'See posting';
+      const primary = job.location?.name ?? job.location ?? job.categories?.location ?? 'See posting';
       const secondary = (job.secondaryLocations ?? []).map(item => item.location).filter(Boolean);
+      const location = [...new Set([primary, ...secondary])].join(' · ');
+      const experience = startup && startupFit(title, location, description, found);
+      const discovered = experience ? {
+        experience, shortlisted: true, autoShortlisted: true, priority: 4,
+        route: 'Open the source to check the requirements and application route. Pick one shipped project that demonstrates a core skill on the posting.',
+      } : {};
       return [{
+        ...discovered,
         id: `job:${sourceKey}:${job.id ?? url}`, sourceKey, kind: 'job', org, title, url, checkedAt,
-        location: [...new Set([location, ...secondary])].join(' · '), tags: found,
+        location, tags: found,
         fitTitle: titleTags.length * 3, summary: description.slice(0, 220),
       }];
     });
@@ -134,10 +143,33 @@ async function issues([org, repo]) {
   });
 }
 
+async function checkShortlist(entry, boardResults) {
+  const { key, board, issue, marker, ...details } = entry;
+  const sourceKey = `shortlist:${key}`;
+  return collect('shortlist', sourceKey, entry.org, async () => {
+    if (board) {
+      const result = boardResults.find(source => source.key === board);
+      if (!result || result.error) throw new Error('Hiring board unavailable');
+      if (!result.leads.some(lead => lead.url === entry.url)) return [];
+    } else if (issue) {
+      const item = await json(`https://api.github.com/repos/${issue}`, githubHeaders);
+      if (item.state !== 'open' || item.assignees.length) return [];
+    } else {
+      const response = await fetch(entry.url, { headers, signal: AbortSignal.timeout(12000) });
+      if (response.status === 404 || response.status === 410) return [];
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const page = await response.text();
+      const text = plain(page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/&amp;/g, '&'));
+      if (!text.toLowerCase().includes(marker.toLowerCase())) return [];
+    }
+    return [{ ...details, id: sourceKey, sourceKey, checkedAt, shortlisted: true }];
+  });
+}
+
 const [boardResults, discovery] = await Promise.all([batch(boards, board), discover()]);
 const watch = new Map([...repositories, ...discovery.discovered].map(entry => [entry[1].toLowerCase(), entry]));
 for (const lead of previous.leads) {
-  if (lead.kind === 'issue' && !watch.has(lead.location.toLowerCase())) {
+  if (lead.kind === 'issue' && !lead.shortlisted && !watch.has(lead.location.toLowerCase())) {
     watch.set(lead.location.toLowerCase(), [lead.org, lead.location]);
   }
 }
@@ -145,13 +177,18 @@ const fixed = new Set(repositories.map(([, repo]) => repo.toLowerCase()));
 const rotated = [...watch.values()].filter(([, repo]) => !fixed.has(repo.toLowerCase()));
 const start = rotated.length > 25 ? Math.floor(Date.now() / 86400000) % rotated.length : 0;
 const selected = [...repositories, ...[...rotated.slice(start), ...rotated.slice(0, start)].slice(0, 25)];
-const issueResults = await batch(selected, issues);
-const results = [...boardResults, ...issueResults];
+const [issueResults, shortlistResults] = await Promise.all([
+  batch(selected, issues),
+  batch(shortlist, entry => checkShortlist(entry, boardResults)),
+]);
+const results = [...boardResults, ...issueResults, ...shortlistResults];
 if (results.every(result => result.error)) throw new Error('All sources failed. Previous feed preserved.');
 const checkedKeys = new Set(results.map(result => result.key));
 const retained = previous.leads.filter(lead => !checkedKeys.has(lead.sourceKey)
   && lead.checkedAt >= recentCutoff);
-const leads = [...new Map([...retained, ...results.flatMap(result => result.leads)].map(lead => [lead.id, lead])).values()];
+const reviewed = new Map(shortlistResults.flatMap(source => source.leads).map(lead => [lead.url, lead]));
+const found = [...retained, ...results.flatMap(result => result.leads)];
+const leads = [...new Map(found.filter(lead => !reviewed.has(lead.url) || reviewed.get(lead.url).id === lead.id).map(lead => [lead.id, lead])).values()];
 const dataset = {
   checkedAt,
   discovery: { queries: queries.length, completed: discovery.completed, found: discovery.discovered.length },

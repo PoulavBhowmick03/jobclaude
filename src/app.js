@@ -12,7 +12,7 @@ try {
 }
 
 const data = { leads: [], sources: [] };
-let view = 'all';
+let view = 'shortlist';
 let visible = 16;
 let scanReady = false;
 let profileBusy = false;
@@ -243,7 +243,17 @@ function card(lead, profile) {
   const title = node('h3');
   title.append(link(lead.title, lead.url));
   article.append(top, title, node('p', lead.location, 'location'));
+  if (lead.experience) {
+    const qualifier = lead.autoShortlisted ? ' · Scanner match' : '';
+    article.append(node('p', lead.experience + qualifier, 'experience'));
+  }
   if (lead.summary) article.append(node('p', lead.summary, 'description'));
+  if (lead.route) {
+    const route = node('div', '', 'route');
+    route.append(node('strong', 'Way in'), node('p', lead.route));
+    if (lead.contact) route.append(link(lead.contact.name, lead.contact.url));
+    article.append(route);
+  }
   const chips = node('div', '', 'tags');
   const labelOrder = [...new Set([...lead.matches, ...lead.tags])];
   for (const tag of labelOrder.slice(0, 6)) chips.append(node('span', tag, profile[tag] ? 'tag matched' : 'tag'));
@@ -266,7 +276,9 @@ function card(lead, profile) {
     details.append(summary, list);
     article.append(details);
   }
-  const note = data.leads.some(item => item.id === lead.id) ? 'Source checked' : 'Last seen';
+  const active = data.leads.some(item => item.id === lead.id);
+  const fresh = active && !data.sources.some(source => source.key === lead.sourceKey && source.error);
+  const note = fresh ? 'Source checked' : 'Last seen';
   const day = new Date(lead.checkedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   article.append(node('p', `${note} ${day}${lead.starter ? ' · Starter label' : ''}`, 'lead-date'));
   return article;
@@ -297,14 +309,17 @@ function render() {
   const current = new Map(data.leads.map(lead => [lead.id, lead]));
   const candidates = view === 'saved'
     ? Object.values(local.saved).map(lead => current.get(lead.id) ?? lead)
-    : data.leads.filter(lead => !['job', 'issue'].includes(view) || lead.kind === view);
+    : data.leads.filter(lead => view === 'shortlist' ? lead.shortlisted : !['job', 'issue'].includes(view) || lead.kind === view);
   const query = $('search').value.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const filtered = candidates.filter(lead => {
     const text = [lead.org, lead.title, lead.location, ...lead.tags].join(' ').toLowerCase();
     return query.every(word => text.includes(word));
   });
   const ranked = rank(filtered, profile, $('track').value);
+  if (view === 'shortlist') ranked.sort((a, b) => a.priority - b.priority);
   const entries = view === 'teams' ? teamGroups(ranked) : ranked;
+  $('results-heading').textContent = document.querySelector(`[data-view="${view}"]`).textContent;
+  $('shortlist-note').hidden = view !== 'shortlist';
   $('result-count').textContent = scanReady || view === 'saved'
     ? `${entries.length} ${view === 'teams' ? 'teams' : 'leads'}`
     : '';
@@ -374,14 +389,14 @@ async function feedFrom(url) {
 
 async function loadFeed() {
   const latest = 'https://raw.githubusercontent.com/PoulavBhowmick03/jobclaude/main/public/data/latest.json';
-  try {
-    showFeed(await feedFrom(latest), true);
-  } catch {
-    try {
-      showFeed(await feedFrom('/data/latest.json'), false);
-    } catch {
-      $('feed-status').textContent = 'The source feed is unavailable. Reload the page to try again.';
-    }
+  const [remote, localFeed] = await Promise.allSettled([feedFrom(latest), feedFrom('/data/latest.json')]);
+  if (remote.status === 'fulfilled'
+    && (localFeed.status === 'rejected' || remote.value.checkedAt >= localFeed.value.checkedAt)) {
+    showFeed(remote.value, true);
+  } else if (localFeed.status === 'fulfilled') {
+    showFeed(localFeed.value, false);
+  } else {
+    $('feed-status').textContent = 'The source feed is unavailable. Reload the page to try again.';
   }
 }
 

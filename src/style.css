@@ -102,3 +102,9 @@ summary { cursor: pointer; }
 @media (max-width: 410px) {
   .filter-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+#shortlist-note { color: var(--muted); line-height: 1.5; margin: 0 0 13px; font-size: .9rem; }
+.experience { color: var(--green); font-weight: 650; font-size: .875rem; line-height: 1.45; margin: 6px 0; }
+.route { background: #f3f6ef; border-radius: 7px; padding: 9px 11px; margin: 10px 0; font-size: .875rem; line-height: 1.5; }
+.route p { margin: 3px 0 0; }
+.route a { display: inline-block; margin-top: 5px; color: var(--green); }

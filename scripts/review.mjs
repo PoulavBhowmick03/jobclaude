@@ -11,7 +11,9 @@ const profile = JSON.parse(await readFile(profilePath, 'utf8'));
 const feed = JSON.parse(await readFile(new URL('../public/data/latest.json', import.meta.url), 'utf8'));
 const categories = ['job', 'issue'];
 const candidates = categories.flatMap(kind => {
-  const choices = rank(feed.leads.filter(item => item.kind === kind), profile, track).filter(item => item.matches.length);
+  const choices = rank(feed.leads.filter(item => item.shortlisted && item.kind === kind), profile, track)
+    .filter(item => item.matches.length)
+    .sort((a, b) => a.priority - b.priority);
   const unique = new Map();
   for (const choice of choices) {
     const org = choice.org.toLowerCase();
@@ -55,7 +57,7 @@ const response = await fetch('http://127.0.0.1:11434/api/chat', {
         role: 'user',
         content: JSON.stringify(candidates.map((lead, candidate) => ({
           candidate, org: lead.org, title: lead.title, kind: lead.kind, location: lead.location,
-          summary: lead.summary,
+          summary: lead.summary, experience: lead.experience,
           matches: Object.fromEntries(lead.matches.map(tag => [tag, profile[tag]])),
         }))),
       },

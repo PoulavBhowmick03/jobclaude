@@ -7,13 +7,14 @@ Jobclaude finds engineering teams that hire for your skills and open-source proj
 1. Open [Jobclaude](https://jobclaude.vercel.app).
 2. Add one or more text-based PDF or TXT résumés.
 3. Enter your GitHub username and select **Import**.
-4. Select a track or search by location, company, or skill.
-5. Open **Your evidence** on a lead to see where a shared skill came from.
-6. Select **Teams** for the company and project list, or **Save** to keep a lead.
+4. Start with **Shortlist** for early-career roles in India and selected contribution paths.
+5. Select a track or search by location, company, or skill.
+6. Open **Your evidence** on a lead to see where a shared skill came from.
+7. Select **Teams** for the company and project list, or **Save** to keep a lead.
 
 The browser stores selected résumé excerpts, imported GitHub evidence, and saved leads on the current device. Clear the profile to remove résumé and GitHub evidence from browser storage. GitHub receives the username you ask it to look up.
 
-Keyword matches are starting points for reading. Check the source for hiring geography, work authorization, seniority, and open status.
+The shortlist shows experience, location, a route to apply or contribute, and a public contact when the source names one. Scanner matches come from selected startup boards and require relevant work, an India location, and early-career evidence. Stretch roles show the stated expectations. Use **All roles** to browse the wider feed. Keyword matches are starting points for reading. Check the source for hiring geography, work authorization, seniority, and open status.
 
 ## Run locally
 
@@ -28,11 +29,11 @@ Run `npm test` to check the matching rules. Run `npm run build` to build the sta
 
 ## Refresh the public feed
 
-GitHub Actions checks configured employer boards and public GitHub repositories every day at 03:17 UTC (08:47 IST). Three GitHub searches add repositories to a rotating watchlist. The scan records source failures and keeps recently verified results for up to seven days.
+GitHub Actions checks configured employer boards and public GitHub repositories every day at 03:17 UTC (08:47 IST). Three GitHub searches add repositories to a rotating watchlist. The same scan rechecks each reviewed shortlist source. The scan records source failures and keeps recently verified results for up to seven days.
 
 The workflow writes the public feed to `public/data/latest.json`. The dashboard loads this file from GitHub and falls back to a copy from its deployment. The workflow uses the repository's built-in GitHub token.
 
-To start a scan, open **Actions**, select **Scan career leads**, and select **Run workflow**. To change coverage, edit `scripts/sources.mjs`. For a local scan, run the following commands with the GitHub CLI signed in.
+To start a scan, open **Actions**, select **Scan career leads**, and select **Run workflow**. To change coverage, edit `scripts/sources.mjs`. To add a reviewed lead, edit `scripts/shortlist.mjs`. For a local scan, run the following commands with the GitHub CLI signed in.
 
 ```sh
 GH_TOKEN="$(gh auth token)" npm run scan
