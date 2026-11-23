@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleResearch } from '../api/research.js';
 import { handleSession } from '../api/session.js';
-import { verifiedLeads, runResearch } from '../server/research.js';
+import { verifiedLeads, runResearch, statedMinimum } from '../server/research.js';
 import { fullyPaid } from '../server/payment.js';
 
 const origin = 'https://test.jobclaude.invalid';
@@ -101,4 +101,10 @@ test('the pilot can run a search stage independently of the résumé request', a
     return { usedSearch: true, sources: [target], data: { leads: [{ company: 'Example', url: target }] } };
   } });
   assert.deepEqual(await response.json(), { leads: [{ company: 'Example', url: target }] });
+});
+
+test('reads explicit minimum experience from dated hiring requirements', () => {
+  assert.equal(statedMinimum('  - 5-12 years of software engineering experience.'), 5);
+  assert.equal(statedMinimum('Requires 2 or more years building production software.'), 2);
+  assert.equal(statedMinimum('Bonus: 5 years of protocol work.'), null);
 });
