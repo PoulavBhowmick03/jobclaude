@@ -60,10 +60,13 @@ export async function teamRoutes(username, entries, fetcher = fetch) {
     if (!match) continue;
     const [url, org, repo, number] = match;
     if (org.toLowerCase() === username.toLowerCase() || repo === '.' || repo === '..') continue;
-    if (!unique.has(org.toLowerCase())) unique.set(org.toLowerCase(), { url, org, repo, number });
+    const key = org.toLowerCase();
+    if (!unique.has(key)) unique.set(key, []);
+    const group = unique.get(key);
+    if (group.length < 2 && !group.some(contribution => contribution.url === url)) group.push({ url, org, repo, number });
   }
   const candidates = [...unique.values()].slice(0, 6);
-  const settled = await Promise.allSettled(candidates.map(async ({ url, org, repo, number }) => {
+  async function follow({ url, org, repo, number }) {
     const base = `repos/${org}/${repo}`;
     const [pull, reviews, issues] = await Promise.allSettled([
       get(`${base}/pulls/${number}`),
@@ -87,6 +90,16 @@ export async function teamRoutes(username, entries, fetcher = fetch) {
       reviewer: reviewer ? { login: reviewer.user.login, url: reviewer.html_url } : null,
       issue: issue ? { title: issue.title, url: issue.url, related: issue.related } : null,
     };
+  }
+  const settled = await Promise.allSettled(candidates.map(async group => {
+    const first = await follow(group[0]).catch(error => ({ error }));
+    if ((first && !first.error && first.reviewer) || group.length === 1) {
+      if (first?.error) throw first.error;
+      return first;
+    }
+    const next = await follow(group[1]).catch(() => null);
+    if (next?.reviewer || !first || first.error) return next;
+    return first;
   }));
   const routes = settled.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : [])
     .sort((a, b) => Number(Boolean(b.reviewer)) - Number(Boolean(a.reviewer))

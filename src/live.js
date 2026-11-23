@@ -322,7 +322,12 @@ async function runPilot(input) {
   const results = await Promise.allSettled(paths.map(async (name, index) => {
     showProgress('progress', { name, detail: 'Searching current public sources.' });
     try {
-      const { leads } = await stage(index, brief);
+      const result = await stage(index, brief).catch(error => {
+        if (!(error instanceof TypeError)) throw error;
+        showProgress('progress', { name, detail: 'Connection interrupted. Retrying this search once.' });
+        return stage(index, brief);
+      });
+      const { leads } = result;
       showProgress('leads', { name, leads });
       return leads;
     } catch (error) {
