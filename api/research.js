@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { allowedOrigin, config, createStore, json, readCookie, validPilot } from '../server/session.js';
-import { runResearch } from '../server/research.js';
+import { createResearchProvider, matchProof, normalizeBrief, reviewResume, runResearch, scout, selectLeads } from '../server/research.js';
 
-async function readInput(request) {
+async function readJson(request) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('Add a résumé to start.');
   const decoder = new TextDecoder();
@@ -18,7 +18,10 @@ async function readInput(request) {
     }
     text += decoder.decode(value, { stream: true });
   }
-  const body = JSON.parse(text + decoder.decode());
+  return JSON.parse(text + decoder.decode());
+}
+
+function readInput(body) {
   const resume = body.resume?.trim();
   const github = body.github?.trim().replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/\/$/, '') ?? '';
   const roles = body.preferences?.roles?.trim();
@@ -33,6 +36,26 @@ async function readInput(request) {
   return { resume, github, preferences: { roles, locations, experience } };
 }
 
+async function handlePilotStage(request, stage, dependencies) {
+  try {
+    const body = await readJson(request);
+    const ask = dependencies.ask ?? createResearchProvider(process.env, fetch, request.headers.get('x-vercel-oidc-token'));
+    if (stage === 'review') return json(await reviewResume(readInput(body), ask));
+    if (['0', '1', '2'].includes(stage)) return json({ leads: await scout(normalizeBrief(body), Number(stage), ask) });
+    if (stage === 'match') {
+      if (!Array.isArray(body.leads) || !Array.isArray(body.critique?.strengths) || !Array.isArray(body.critique?.github?.entries)) {
+        return json({ error: 'The evidence review needs completed search results.' }, 400);
+      }
+      const selected = selectLeads(body.leads);
+      return json({ leads: await matchProof(body.critique, selected, ask) });
+    }
+    return json({ error: 'Unknown research stage.' }, 400);
+  } catch (error) {
+    console.warn('Private research stage failed:', stage, error instanceof SyntaxError ? 'Invalid structured result' : error.message);
+    return json({ error: stage === 'review' ? 'The résumé review could not finish.' : 'This search stage could not finish.' }, 502);
+  }
+}
+
 export async function handleResearch(request, dependencies = {}) {
   const settings = dependencies.settings ?? config();
   if (!settings.enabled) return json({ error: 'Live research is unavailable in preview.' }, 503);
@@ -41,9 +64,11 @@ export async function handleResearch(request, dependencies = {}) {
   const token = readCookie(request);
   if (settings.pilot && !validPilot(request, settings)) return json({ error: 'A valid pilot access code is required.' }, 401);
   if (!settings.pilot && !token) return json({ error: 'A paid report is required.' }, 402);
+  const stage = new URL(request.url).searchParams.get('stage');
+  if (settings.pilot && stage) return handlePilotStage(request, stage, dependencies);
   let input;
   try {
-    input = await readInput(request);
+    input = readInput(await readJson(request));
   } catch (error) {
     return json({ error: error.message }, 400);
   }

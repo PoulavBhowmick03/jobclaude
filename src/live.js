@@ -229,6 +229,49 @@ async function readStream(response) {
   }
 }
 
+async function runPilot(input) {
+  const code = $('pilot-code').value.trim();
+  async function stage(name, body) {
+    const response = await fetch(`/api/research?stage=${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${code}` },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? 'This research step could not finish.');
+    return data;
+  }
+
+  showProgress('progress', { name: 'Résumé reviewer', detail: 'Reading the résumé and checking public GitHub work.' });
+  const { critique, brief } = await stage('review', input);
+  showProgress('critique', critique);
+  const paths = ['Startup scout', 'Technical recruiter', 'Direct routes'];
+  const results = await Promise.allSettled(paths.map(async (name, index) => {
+    showProgress('progress', { name, detail: 'Searching current public sources.' });
+    try {
+      const { leads } = await stage(index, brief);
+      showProgress('leads', { name, leads });
+      return leads;
+    } catch (error) {
+      showProgress('progress', { name, detail: 'This search did not complete.' });
+      throw error;
+    }
+  }));
+  const failedSearches = results.filter(result => result.status === 'rejected').length;
+  if (failedSearches === paths.length) throw new Error('All live searches were interrupted. Your résumé review is shown above.');
+  const leads = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+  let selected = [...ui.leads].slice(0, 10);
+  if (leads.length) {
+    showProgress('progress', { name: 'Evidence reviewer', detail: 'Matching shortlisted roles to actual work.' });
+    try {
+      ({ leads: selected } = await stage('match', { critique, leads }));
+    } catch {
+      showProgress('progress', { name: 'Evidence reviewer', detail: 'This step did not finish.' });
+    }
+  }
+  showProgress('complete', { critique, leads: selected, failedSearches, createdAt: new Date().toISOString() });
+}
+
 $('brief').addEventListener('submit', async event => {
   event.preventDefault();
   if (!ui.resume) {
@@ -264,22 +307,24 @@ $('brief').addEventListener('submit', async event => {
   renderWorkspace();
   updateControls();
   try {
-    const response = await fetch('/api/research', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(ui.session.pilot ? { Authorization: `Bearer ${$('pilot-code').value.trim()}` } : {}),
-      },
-      body: JSON.stringify({
-        resume: ui.resume,
-        github,
-        preferences: { roles: $('roles').value.trim(), locations: $('locations').value.trim(), experience: $('experience').value },
-      }),
-    });
-    if (!response.ok) throw new Error((await response.json()).error);
-    await readStream(response);
-    if (!ui.report) throw new Error('The connection closed. Check your report status.');
-    if (!ui.session.pilot) ui.session.state = 'complete';
+    const input = {
+      resume: ui.resume,
+      github,
+      preferences: { roles: $('roles').value.trim(), locations: $('locations').value.trim(), experience: $('experience').value },
+    };
+    if (ui.session.pilot) {
+      await runPilot(input);
+    } else {
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      await readStream(response);
+      if (!ui.report) throw new Error('The connection closed. Check your report status.');
+      ui.session.state = 'complete';
+    }
   } catch (error) {
     $('mode').textContent = 'Interrupted';
     setMessage(error.message);

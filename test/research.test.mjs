@@ -87,3 +87,18 @@ test('a payment requires a completed link with the exact price and reference', (
   assert(!fullyPaid({ ...link, amount_paid: 19899 }, pass));
   assert(!fullyPaid({ ...link, reference_id: 'another-ref' }, pass));
 });
+
+test('the pilot can run a search stage independently of the résumé request', async () => {
+  const request = new Request(origin + '/api/research?stage=0', {
+    method: 'POST',
+    headers: { origin, Authorization: `Bearer ${code}` },
+    body: JSON.stringify({ roleTitles: ['Voice Engineer'], standoutSkills: ['Voice AI'], avoid: [], locations: 'India', roles: 'Voice AI', experience: '1–2 years' }),
+  });
+  const response = await handleResearch(request, { settings, ask: async request => {
+    assert.equal(request.search, true);
+    assert.equal(request.input.locations, 'India');
+    assert.match(request.instructions, /Startup scout/);
+    return { usedSearch: true, sources: [target], data: { leads: [{ url: target }] } };
+  } });
+  assert.deepEqual(await response.json(), { leads: [{ url: target }] });
+});
