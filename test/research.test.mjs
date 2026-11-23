@@ -14,7 +14,7 @@ const report = { critique: { verdict: 'A grounded response.' }, leads: [] };
 const input = {
   resume: 'Built a Rust backend and measured API performance. '.repeat(6),
   github: 'candidate01',
-  preferences: { roles: 'Voice AI', locations: 'India', experience: '1–2 years' },
+  preferences: { roles: 'Voice AI', country: 'India', locations: 'Bengaluru', experience: '1–2 years', workMode: 'any', relocation: false, stretch: 0 },
 };
 
 function research(secret = code) {

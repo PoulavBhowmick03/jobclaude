@@ -39,8 +39,20 @@
         <input id="github" placeholder="Username or profile URL" autocomplete="off">
         <label class="field" for="roles">What do you want to do?</label>
         <input id="roles" placeholder="e.g. Voice AI or Rust backend" maxlength="140" required>
-        <label class="field" for="locations">Where can you work?</label>
-        <input id="locations" placeholder="e.g. Bengaluru or remote from India" maxlength="140" required>
+        <label class="field" for="country">Where are you based?</label>
+        <input id="country" placeholder="e.g. India" maxlength="70" required>
+        <label class="field" for="work-mode">Work mode</label>
+        <select id="work-mode" required>
+          <option value="any">Any work mode</option>
+          <option value="remote">Remote only</option>
+          <option value="hybrid">Hybrid only</option>
+          <option value="onsite">On-site only</option>
+        </select>
+        <label class="field" for="locations">Acceptable office cities <span>Optional</span></label>
+        <input id="locations" placeholder="e.g. Bengaluru, Kolkata" maxlength="140">
+        <label class="checkbox" for="relocation">
+          <input type="checkbox" id="relocation">I can relocate within my country
+        </label>
         <label class="field" for="experience">Years of experience</label>
         <select id="experience" required>
           <option value="">Choose experience</option>
@@ -49,6 +61,9 @@
           <option>2–4 years</option>
           <option>4+ years</option>
         </select>
+        <label class="checkbox" for="stretch">
+          <input type="checkbox" id="stretch">Include roles that ask for up to one additional year
+        </label>
         <div id="pilot-field" hidden>
           <label class="field" for="pilot-code">Private pilot access code</label>
           <input id="pilot-code" type="password" autocomplete="off">
@@ -70,7 +85,7 @@
         <div id="output"></div>
         <div id="empty" class="panel empty">
           <h3>Your report will appear here</h3>
-          <p>The résumé reviewer starts first. You’ll see results as each of the three searches finishes.</p>
+          <p>See the résumé review, job matches with evidence from the listings, and teams connected to your public GitHub work.</p>
           <button class="secondary" id="sample" type="button">See an example report</button>
         </div>
         <button class="secondary" id="download" type="button" hidden>Download report</button>

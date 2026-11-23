@@ -4,7 +4,7 @@ import { readResume } from './resume.js';
 const $ = id => document.getElementById(id);
 const ui = {
   session: null, resume: '', running: false, loadingFile: false, report: null,
-  critique: null, leads: [], activity: new Map(), seen: new Set(),
+  critique: null, leads: [], network: null, activity: new Map(), seen: new Set(),
 };
 
 function element(tag, text, className) {
@@ -133,11 +133,27 @@ function renderCritique(critique) {
 }
 
 function renderLead(lead) {
-  const labels = { direct: 'Direct fit', stretch: 'Stretch', conversation: 'Conversation route' };
+  const labels = { direct: 'Direct fit', stretch: 'Stretch', unverified: 'Fit needs checking', conversation: 'Conversation route' };
   const section = reportSection(lead.company);
   section.classList.add('lead');
   section.prepend(element('span', labels[lead.fit], `badge ${lead.fit}`));
   section.append(element('strong', lead.role), element('p', [lead.location, lead.experience].filter(Boolean).join(' · '), 'hint'));
+  if (lead.eligibility) {
+    const list = element('dl', '', 'fit-evidence');
+    const fields = [
+      ['Location eligibility', lead.eligibility.location],
+      ['Work mode', lead.eligibility.workMode],
+      ['Experience', lead.eligibility.experience],
+    ];
+    for (const [label, field] of fields) {
+      list.append(element('dt', label));
+      const detail = element('dd');
+      detail.append(element('strong', field.status === 'confirmed' ? 'Confirmed from source' : 'Needs checking'));
+      if (field.quote) detail.append(element('blockquote', field.quote));
+      list.append(detail);
+    }
+    section.append(list);
+  }
   section.append(element('p', lead.hiringSignal));
   for (const [label, value] of [['What to show', lead.proofToLeadWith], ['Way in', lead.route]]) {
     const item = element('div', '', 'route');
@@ -148,8 +164,43 @@ function renderLead(lead) {
   return section;
 }
 
+function renderNetwork(network) {
+  const wrapper = element('section', '', 'lead-list');
+  wrapper.append(element('h3', 'Teams you have a reason to contact'));
+  if (!network.routes.length) {
+    wrapper.append(element('p', network.status === 'unavailable'
+      ? 'GitHub could not confirm team routes in this run.'
+      : 'No confirmed team routes from the public contributions checked.', 'hint'));
+    return wrapper;
+  }
+  for (const route of network.routes) {
+    const card = reportSection(route.team);
+    card.append(element('span', 'Hiring unconfirmed', 'badge conversation'));
+    const why = element('p');
+    why.append(document.createTextNode('Your merged work: '), external(route.contribution.title, route.contribution.url));
+    card.append(why);
+    const who = element('p');
+    if (route.reviewer) {
+      who.append(document.createTextNode('Who: '), external(`@${route.reviewer.login} approved your PR`, route.reviewer.url));
+    } else {
+      who.append(document.createTextNode('Where: '), external('Public repository channels', route.repoUrl));
+    }
+    card.append(who);
+    if (route.issue) {
+      const current = element('p');
+      current.append(document.createTextNode(route.issue.related ? 'Related open issue: ' : 'Current open issue: '), external(route.issue.title, route.issue.url));
+      card.append(current);
+    }
+    card.append(element('p', route.issue?.related
+      ? 'Read the issue and bring one question or observation that connects it to your earlier contribution.'
+      : 'Read recent work in the repository. Lead with your merged change and ask where a follow-up would help.', 'hint'));
+    wrapper.append(card);
+  }
+  return wrapper;
+}
+
 function renderWorkspace() {
-  $('empty').hidden = Boolean(ui.critique || ui.leads.length || ui.activity.size);
+  $('empty').hidden = Boolean(ui.critique || ui.leads.length || ui.network?.routes.length || ui.activity.size);
   const activity = [...ui.activity].map(([name, detail]) => {
     const item = element('div', '', 'activity-item');
     item.append(element('strong', name), element('span', detail));
@@ -166,6 +217,7 @@ function renderWorkspace() {
   } else if (ui.report && ui.critique) {
     output.push(element('p', 'The report returned no leads with enough source evidence.', 'panel hint'));
   }
+  if (ui.network && ui.network.status !== 'skipped') output.push(renderNetwork(ui.network));
   if (ui.report?.failedSearches) {
     output.push(element('p', `${ui.report.failedSearches} search paths could not finish. The other results are shown above.`, 'hint'));
   }
@@ -177,6 +229,7 @@ function showReport(report, example = false) {
   ui.report = report;
   ui.critique = report.critique;
   ui.leads = report.leads;
+  ui.network = report.network ?? null;
   ui.activity.clear();
   $('mode').textContent = example ? 'Example report' : 'Complete';
   renderWorkspace();
@@ -245,6 +298,19 @@ async function runPilot(input) {
   showProgress('progress', { name: 'Résumé reviewer', detail: 'Reading the résumé and checking public GitHub work.' });
   const { critique, brief } = await stage('review', input);
   showProgress('critique', critique);
+  const teamLookup = input.github ? (async () => {
+    showProgress('progress', { name: 'GitHub team routes', detail: 'Checking who reviewed your contributions and what these repositories are working on.' });
+    try {
+      const network = critique.github.status === 'unavailable' ? { status: 'unavailable', routes: [] }
+        : await stage('teams', { github: input.github, entries: critique.github.entries });
+      ui.network = network;
+      showProgress('progress', { name: 'GitHub team routes', detail: network.status === 'unavailable'
+        ? 'GitHub could not confirm team routes.' : `${network.routes.length} public team routes found.` });
+      return network;
+    } catch {
+      return { status: 'unavailable', routes: [] };
+    }
+  })() : Promise.resolve({ status: 'skipped', routes: [] });
   const paths = ['Startup scout', 'Technical recruiter', 'Direct routes'];
   const results = await Promise.allSettled(paths.map(async (name, index) => {
     showProgress('progress', { name, detail: 'Searching current public sources.' });
@@ -258,7 +324,6 @@ async function runPilot(input) {
     }
   }));
   const failedSearches = results.filter(result => result.status === 'rejected').length;
-  if (failedSearches === paths.length) throw new Error('All live searches were interrupted. Your résumé review is shown above.');
   const leads = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
   let selected = [...ui.leads].slice(0, 10);
   if (leads.length) {
@@ -269,7 +334,7 @@ async function runPilot(input) {
       showProgress('progress', { name: 'Evidence reviewer', detail: 'This step did not finish.' });
     }
   }
-  showProgress('complete', { critique, leads: selected, failedSearches, createdAt: new Date().toISOString() });
+  showProgress('complete', { critique, leads: selected, network: await teamLookup, failedSearches, createdAt: new Date().toISOString() });
 }
 
 $('brief').addEventListener('submit', async event => {
@@ -300,6 +365,7 @@ $('brief').addEventListener('submit', async event => {
   ui.report = null;
   ui.critique = null;
   ui.leads = [];
+  ui.network = null;
   ui.activity.clear();
   ui.seen.clear();
   $('mode').textContent = 'Live';
@@ -310,7 +376,15 @@ $('brief').addEventListener('submit', async event => {
     const input = {
       resume: ui.resume,
       github,
-      preferences: { roles: $('roles').value.trim(), locations: $('locations').value.trim(), experience: $('experience').value },
+      preferences: {
+        roles: $('roles').value.trim(),
+        country: $('country').value.trim(),
+        locations: $('locations').value.trim(),
+        experience: $('experience').value,
+        workMode: $('work-mode').value,
+        relocation: $('relocation').checked,
+        stretch: Number($('stretch').checked),
+      },
     };
     if (ui.session.pilot) {
       await runPilot(input);

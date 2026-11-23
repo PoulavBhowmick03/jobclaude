@@ -83,3 +83,11 @@ h4 { font-size: .94rem; }
 
 .github-work summary { cursor: pointer; }
 .github-work ul { padding-left: 19px; }
+
+.checkbox { display: flex; align-items: center; gap: 7px; margin: 10px 0; font-size: .88rem; }
+.brief .checkbox input { width: auto; min-height: 0; margin: 0; accent-color: var(--ink); }
+.fit-evidence { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 13px; padding: 10px; background: #eef3e8; border-radius: 6px; font-size: .85rem; }
+.fit-evidence dt { font-weight: 700; }
+.fit-evidence dd { margin: 0; min-width: 0; }
+.fit-evidence blockquote { color: var(--muted); margin: 3px 0 0; }
+.badge.unverified { background: #f4e8cf; color: #644a16; }

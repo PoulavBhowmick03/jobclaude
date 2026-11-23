@@ -1,3 +1,5 @@
+import { teamRoutes } from '../server/github.js';
+import { experienceLevels, workModes } from '../server/fit.js';
 import { randomUUID } from 'node:crypto';
 import { allowedOrigin, config, createStore, json, readCookie, validPilot } from '../server/session.js';
 import { createResearchProvider, matchProof, normalizeBrief, reviewResume, runResearch, scout, selectLeads } from '../server/research.js';
@@ -25,20 +27,30 @@ function readInput(body) {
   const resume = body.resume?.trim();
   const github = body.github?.trim().replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/\/$/, '') ?? '';
   const roles = body.preferences?.roles?.trim();
-  const locations = body.preferences?.locations?.trim();
+  const country = body.preferences?.country?.trim();
+  const locations = body.preferences?.locations?.trim() ?? '';
+  const workMode = body.preferences?.workMode;
+  const relocation = body.preferences?.relocation === true;
+  const stretch = body.preferences?.stretch === 1 ? 1 : 0;
   const experience = body.preferences?.experience?.trim();
   if (!resume || resume.length < 200 || resume.length > 22000) throw new Error('Use 200–22,000 characters of résumé text.');
   if (github && !/^[a-z\d][a-z\d-]{0,38}$/i.test(github)) throw new Error('Use a GitHub username or profile URL.');
-  if (!roles || roles.length > 140 || !locations || locations.length > 140 ||
-      !['0–1 years', '1–2 years', '2–4 years', '4+ years'].includes(experience)) {
-    throw new Error('Add a target role, location, and experience level.');
+  if (!roles || roles.length > 140 || !country || country.length > 70 || locations.length > 140 ||
+      !experienceLevels.includes(experience) || !workModes.includes(workMode)) {
+    throw new Error('Add a target role, base country, work mode and experience level.');
   }
-  return { resume, github, preferences: { roles, locations, experience } };
+  if (['hybrid', 'onsite'].includes(workMode) && !locations && !relocation) {
+    throw new Error('Add office cities or allow relocation for office-based roles.');
+  }
+  return { resume, github, preferences: { roles, country, locations, experience, workMode, relocation, stretch } };
 }
 
 async function handlePilotStage(request, stage, dependencies) {
   try {
     const body = await readJson(request);
+    if (stage === 'teams') {
+      return json(await (dependencies.teamRoutes ?? teamRoutes)(body.github, body.entries));
+    }
     const ask = dependencies.ask ?? createResearchProvider(process.env, fetch, request.headers.get('x-vercel-oidc-token'));
     if (stage === 'review') return json(await reviewResume(readInput(body), ask));
     if (['0', '1', '2'].includes(stage)) return json({ leads: await scout(normalizeBrief(body), Number(stage), ask) });

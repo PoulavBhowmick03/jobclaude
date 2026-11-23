@@ -1,6 +1,6 @@
 # Jobclaude
 
-Jobclaude reviews a résumé and searches for matching engineering roles on demand. The workspace streams the review and each search result to the browser.
+Jobclaude reviews a résumé and searches for matching engineering roles on demand. The workspace streams the review and each search result to the browser. Search results show the source text for work mode, location, and experience. Set your base country, office cities, relocation preference, and experience range before starting. Missing evidence is marked for review.
 
 ## Preview
 
@@ -15,7 +15,7 @@ Open [Jobclaude](https://jobclaude.vercel.app). Select **See an example report**
 
 Use a random code with 24 or more URL-safe characters. Keep the code and model key out of Git. The pilot uses no payment service or report database. Download results before closing the page. Keep the pilot code private. Use the AI Gateway free balance or configure a provider budget before sharing access.
 
-The browser extracts text from PDF or TXT files. The API removes common email and phone formats before model submission. Avoid including unnecessary sensitive details. The reference search receives a role brief. The OpenAI API requests set `store: false`. An optional GitHub username enables a check of public merged PRs.
+The browser extracts text from PDF or TXT files. The API removes common email and phone formats before model submission. Avoid including unnecessary sensitive details. The reference search receives a role brief. The OpenAI API requests set `store: false`. An optional GitHub username enables a check of public merged PRs. The report links to actual approvals from repository collaborators and to current issues when available. These routes do not establish a vacancy or a referral.
 
 ## Checkout
 
